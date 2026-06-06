@@ -128,3 +128,143 @@
     @apply font-sans;
   }
 }
+
+/* =====================================================================
+   AI Portal Design System tokens — appended for DS compliance
+   ===================================================================== */
+:root {
+  /* Fonts — reference next/font variables injected by layout.tsx */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Neutrals */
+  --zinc-950: #09090b;
+  --zinc-900: #18181b;
+  --zinc-800: #27272a;
+  --zinc-700: #3f3f46;
+  --zinc-600: #52525b;
+  --zinc-500: #71717a;
+  --zinc-400: #a1a1aa;
+  --zinc-300: #d4d4d8;
+  --zinc-100: #f4f4f5;
+
+  /* Blue — UI/brand */
+  --blue-700: #1d4ed8;
+  --blue-600: #2563eb;
+  --blue-500: #3b82f6;
+  --blue-400: #60a5fa;
+
+  /* Cyan — telemetry */
+  --cyan-400: #22d3ee;
+  --cyan-500: #06b6d4;
+
+  /* Status */
+  --emerald-400: #34d399;
+  --emerald-800: #065f46;
+  --emerald-950: #022c22;
+  --green-400:   #4ade80;
+  --amber-400:   #fbbf24;
+  --amber-500:   #f59e0b;
+  --red-400:     #f87171;
+  --red-500:     #ef4444;
+
+  /* Host palette */
+  --host-m4:        #60a5fa;
+  --host-macstudio: #c084fc;
+  --host-jarvis:    #4ade80;
+  --host-gesserit:  #fbbf24;
+  --host-spark1:    #f87171;
+  --host-spark2:    #22d3ee;
+
+  /* Semantic surfaces */
+  --surface-app:     var(--zinc-950);
+  --surface-card:    var(--zinc-900);
+  --surface-raised:  var(--zinc-800);
+  --surface-hover:   var(--zinc-700);
+
+  /* Borders */
+  --border-subtle:  var(--zinc-800);
+  --border-default: var(--zinc-700);
+  --border-strong:  var(--zinc-600);
+  --border-focus:   var(--zinc-500);
+
+  /* Text */
+  --text-primary:   var(--zinc-100);
+  --text-secondary: var(--zinc-400);
+  --text-muted:     var(--zinc-500);
+  --text-faint:     var(--zinc-600);
+
+  /* Brand */
+  --brand:       var(--blue-600);
+  --brand-hover: var(--blue-500);
+  --brand-bar:   var(--blue-600);
+
+  /* Data/telemetry */
+  --data:      var(--cyan-400);
+  --data-fill: var(--cyan-500);
+  --data-track: var(--zinc-800);
+
+  /* Status semantic */
+  --status-online:    var(--emerald-400);
+  --status-online-bg: var(--emerald-950);
+  --status-online-bd: var(--emerald-800);
+  --status-active:    var(--green-400);
+  --status-warn:      var(--amber-400);
+  --status-warn-strong: var(--amber-500);
+  --status-crit:      var(--red-500);
+  --status-offline:   var(--zinc-500);
+  --status-offline-bg: var(--zinc-800);
+  --status-offline-bd: var(--zinc-700);
+
+  /* Gauge */
+  --gauge-track:   var(--zinc-800);
+  --gauge-nominal: var(--cyan-400);
+  --gauge-warn:    var(--amber-500);
+  --gauge-crit:    var(--red-500);
+  --gauge-null:    #3f3f46;
+
+  /* Type scale */
+  --text-3xs:  0.625rem;
+  --text-2xs:  0.6875rem;
+  --text-xs:   0.75rem;
+  --text-sm:   0.8125rem;
+  --text-base: 0.875rem;
+  --text-md:   1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.375rem;
+
+  /* Weights */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* Tracking */
+  --tracking-tight:  -0.01em;
+  --tracking-wide:   0.02em;
+  --tracking-caps:   0.06em;
+  --tracking-widest: 0.1em;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+
+  /* Radii */
+  --radius-xs:   3px;
+  --radius-pill: 9999px;
+
+  /* Motion */
+  --dur-fast:      120ms;
+  --dur-base:      200ms;
+  --dur-slow:      400ms;
+  --dur-telemetry: 700ms;
+  --ease-std:      cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-telemetry: linear;
+
+  /* Effects */
+  --shadow-sm:  0 1px 2px rgba(2,6,23,0.4);
+  --glow-brand: 0 0 0 3px rgba(37,99,235,0.4);
+}

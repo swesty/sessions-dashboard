@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Markdown } from './md';
+import { StatusDot } from './ui/status-dot';
+import { HostChip } from './ui/host-chip';
 
 interface Session {
   session_id: string;
@@ -20,23 +22,6 @@ interface SessionDetail {
   session: Session;
   messages: Array<{ line_no: number; ts: string; type: string; raw: any }>;
   summaries: Array<{ summary_md: string; model: string; generated_at: string }>;
-}
-
-const HOST_COLORS: Record<string, string> = {
-  m4: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  macstudio: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  jarvis: 'bg-green-500/20 text-green-400 border-green-500/30',
-  gesserit: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  'spark-1': 'bg-red-500/20 text-red-400 border-red-500/30',
-  'spark-2': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-};
-
-function StatusDot({ status }: { status: string }) {
-  const color =
-    status === 'active' ? 'bg-green-400 shadow-green-400/50' :
-    status === 'dormant' ? 'bg-amber-400 shadow-amber-400/50' :
-    'bg-zinc-500';
-  return <span className={`inline-block w-2 h-2 rounded-full ${color} ${status === 'active' ? 'shadow-[0_0_6px_1px]' : ''}`} />;
 }
 
 function timeAgo(dateStr: string): string {
@@ -92,11 +77,7 @@ export function SessionsPanel() {
     if (dateFilter && !sessionMatchesDate(s, dateFilter)) return false;
     if (search) {
       const q = search.toLowerCase();
-      const inTitle = (s.title || '').toLowerCase().includes(q);
-      const inCwd = (s.cwd || '').toLowerCase().includes(q);
-      const inSummary = (s.summary || '').toLowerCase().includes(q);
-      const inHost = s.host.toLowerCase().includes(q);
-      if (!inTitle && !inCwd && !inSummary && !inHost) return false;
+      if (![s.title, s.cwd, s.summary, s.host].some(x => (x || '').toLowerCase().includes(q))) return false;
     }
     return true;
   });
@@ -119,23 +100,15 @@ export function SessionsPanel() {
 
   return (
     <div>
-      {/* Header row */}
       <div className="flex items-center gap-3 mb-3">
         <h2 className="text-xl font-semibold">Sessions</h2>
         <span className="text-zinc-500 text-sm">
           {hasFilters ? `${filtered.length} of ${sessions.length}` : `${sessions.length} total`}
         </span>
-        {activeCt > 0 && (
-          <span className="flex items-center gap-1.5 text-xs text-green-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_5px_1px] shadow-green-400/50" />
-            {activeCt} active
-          </span>
-        )}
+        {activeCt > 0 && <StatusDot status="active" label={`${activeCt} active`} />}
       </div>
 
-      {/* Filter bar */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {/* Text search */}
         <div className="relative flex-1 min-w-40">
           <input
             type="search"
@@ -145,8 +118,6 @@ export function SessionsPanel() {
             className="w-full bg-zinc-800/70 border border-zinc-700 text-zinc-200 text-xs rounded-md px-3 py-1.5 focus:outline-none focus:border-zinc-500 placeholder:text-zinc-600"
           />
         </div>
-
-        {/* Date filter */}
         <input
           type="date"
           value={dateFilter}
@@ -154,20 +125,21 @@ export function SessionsPanel() {
           title="Filter by date active"
           className="bg-zinc-800/70 border border-zinc-700 text-zinc-300 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:border-zinc-500 [color-scheme:dark]"
         />
-
-        {/* Host chips */}
-        <button onClick={() => setHostFilter('')}
-          className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${!hostFilter ? 'bg-zinc-700 border-zinc-600 text-zinc-100' : 'bg-zinc-800/50 border-zinc-700 hover:bg-zinc-700 text-zinc-400'}`}>
+        <button
+          onClick={() => setHostFilter('')}
+          className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${!hostFilter ? 'bg-zinc-700 border-zinc-600 text-zinc-100' : 'bg-zinc-800/50 border-zinc-700 hover:bg-zinc-700 text-zinc-400'}`}
+        >
           All
         </button>
         {hosts.map(h => (
-          <button key={h} onClick={() => setHostFilter(hostFilter === h ? '' : h)}
-            className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${hostFilter === h ? 'bg-zinc-700 border-zinc-600' : 'bg-zinc-800/50 hover:bg-zinc-700'} ${HOST_COLORS[h] || 'border-zinc-600 text-zinc-400'}`}>
-            {h}
+          <button
+            key={h}
+            onClick={() => setHostFilter(hostFilter === h ? '' : h)}
+            className={`transition-opacity ${hostFilter && hostFilter !== h ? 'opacity-50' : 'opacity-100'}`}
+          >
+            <HostChip host={h} size="sm" className={hostFilter === h ? 'ring-1 ring-zinc-500' : ''} />
           </button>
         ))}
-
-        {/* Clear all filters */}
         {hasFilters && (
           <button
             onClick={() => { setHostFilter(''); setSearch(''); setDateFilter(''); }}
@@ -178,20 +150,19 @@ export function SessionsPanel() {
         )}
       </div>
 
-      {/* Session list */}
       <div className="space-y-1.5">
         {filtered.length === 0 && (
           <div className="text-zinc-500 text-sm py-6 text-center">No sessions match the current filters.</div>
         )}
         {filtered.map(s => (
-          <div key={s.session_id}
+          <div
+            key={s.session_id}
             onClick={() => openDetail(s.session_id)}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 cursor-pointer hover:border-zinc-600 hover:bg-zinc-900/80 transition-all group">
+            className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 cursor-pointer hover:border-zinc-600 hover:bg-zinc-900/80 transition-all group"
+          >
             <div className="flex items-center gap-2.5">
-              <StatusDot status={s.status} />
-              <span className={`px-2 py-0.5 text-xs rounded border font-medium ${HOST_COLORS[s.host] || 'border-zinc-600 text-zinc-400'}`}>
-                {s.host}
-              </span>
+              <StatusDot status={s.status as any} />
+              <HostChip host={s.host} size="sm" />
               <span className="font-medium text-sm text-zinc-100 group-hover:text-white">{s.title || projectName(s.cwd)}</span>
               {s.git_branch && s.git_branch !== 'HEAD' && (
                 <span className="text-xs text-zinc-500 font-mono">{s.git_branch}</span>
@@ -206,24 +177,22 @@ export function SessionsPanel() {
         ))}
       </div>
 
-      {/* Session detail drawer */}
       {selected && (
         <div className="fixed inset-0 bg-black/70 flex justify-end z-50" onClick={() => setSelected(null)}>
-          <div className="w-full max-w-2xl bg-zinc-900 border-l border-zinc-700 overflow-y-auto p-6"
-            onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-2xl bg-zinc-900 border-l border-zinc-700 overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
-                <StatusDot status={selected.session.status} />
+                <StatusDot status={selected.session.status as any} />
                 <h3 className="text-lg font-semibold">{selected.session.title || projectName(selected.session.cwd)}</h3>
               </div>
               <button onClick={() => setSelected(null)} className="text-zinc-500 hover:text-zinc-300 text-xl w-8 h-8 flex items-center justify-center rounded hover:bg-zinc-800 transition-colors">×</button>
             </div>
 
             <div className="bg-zinc-800/40 border border-zinc-700/50 rounded-lg p-3 text-xs text-zinc-400 space-y-1.5 mb-5 font-mono">
-              <p><span className="text-zinc-500">host</span>   <span className={`px-1.5 py-0.5 rounded border ${HOST_COLORS[selected.session.host] || ''}`}>{selected.session.host}</span></p>
-              <p><span className="text-zinc-500">cwd</span>    <span className="text-zinc-300">{selected.session.cwd}</span></p>
+              <p><span className="text-zinc-500">host</span>{'   '}<HostChip host={selected.session.host} size="sm" /></p>
+              <p><span className="text-zinc-500">cwd</span>{'    '}<span className="text-zinc-300">{selected.session.cwd}</span></p>
               {selected.session.git_branch && <p><span className="text-zinc-500">branch</span> {selected.session.git_branch}</p>}
-              <p><span className="text-zinc-500">span</span>   {new Date(selected.session.first_seen).toLocaleString()} → {new Date(selected.session.last_seen).toLocaleString()}</p>
+              <p><span className="text-zinc-500">span</span>{'   '}{new Date(selected.session.first_seen).toLocaleString()} → {new Date(selected.session.last_seen).toLocaleString()}</p>
               <p className="text-zinc-600 pt-1">claude --resume {selected.session.session_id}</p>
             </div>
 
@@ -241,16 +210,12 @@ export function SessionsPanel() {
               {selected.messages.map(m => (
                 <details key={m.line_no} className="text-xs">
                   <summary className={`cursor-pointer py-1 px-2 rounded hover:bg-zinc-800 list-none flex items-center gap-2 ${
-                    m.type === 'user' ? 'text-blue-400' :
-                    m.type === 'assistant' ? 'text-green-400' :
-                    m.type === 'ai-title' ? 'text-amber-400' : 'text-zinc-500'
+                    m.type === 'user' ? 'text-blue-400' : m.type === 'assistant' ? 'text-green-400' : m.type === 'ai-title' ? 'text-amber-400' : 'text-zinc-500'
                   }`}>
                     <span className="text-zinc-600 shrink-0">{new Date(m.ts).toLocaleTimeString()}</span>
                     <span className="font-mono shrink-0">{m.type}</span>
                     {m.type === 'user' && m.raw?.message && (
-                      <span className="text-zinc-400 truncate">
-                        {String((m.raw as any)?.message?.content || '').slice(0, 80)}
-                      </span>
+                      <span className="text-zinc-400 truncate">{String((m.raw as any)?.message?.content || '').slice(0, 80)}</span>
                     )}
                     {m.type === 'ai-title' && (
                       <span className="text-zinc-400 truncate">{String((m.raw as any)?.aiTitle || '')}</span>
