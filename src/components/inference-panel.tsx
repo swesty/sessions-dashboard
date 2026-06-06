@@ -92,6 +92,18 @@ function fmtTick(v: unknown): string {
   return n.toFixed(3);
 }
 
+function yAxisWidth(results: RangeResult[]): number {
+  let maxVal = 0;
+  for (const r of results) {
+    for (const [, v] of r.values) {
+      const n = Math.abs(parseFloat(v));
+      if (!isNaN(n) && isFinite(n)) maxVal = Math.max(maxVal, n);
+    }
+  }
+  const label = fmtTick(maxVal);
+  return Math.max(32, label.length * 7 + 12);
+}
+
 function toChartData(results: RangeResult[], labelKey = 'model'): ChartPoint[] {
   const byTime = new Map<number, ChartPoint>();
   const keys: string[] = [];
@@ -187,7 +199,7 @@ function MultiAreaChart({
         <AreaChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: 4 }}>
           <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
           <XAxis dataKey="t" tickFormatter={fmtTime} tick={{ fill: '#71717a', fontSize: 10 }} stroke="#3f3f46" minTickGap={32} />
-          <YAxis width={58} tick={{ fill: "#71717a", fontSize: 10 }} tickFormatter={fmtTick} stroke="#3f3f46" />
+          <YAxis width={yAxisWidth(results)} tick={{ fill: '#71717a', fontSize: 10 }} tickFormatter={fmtTick} stroke='#3f3f46' />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(l: unknown) => fmtTime(Number(l))} formatter={makeTooltipFormatter(suffix, decimals)} />
           {keys.map((k, i) => (
             <Area
@@ -228,7 +240,7 @@ function MultiLineChart({
         <LineChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: 4 }}>
           <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
           <XAxis dataKey="t" tickFormatter={fmtTime} tick={{ fill: '#71717a', fontSize: 10 }} stroke="#3f3f46" minTickGap={32} />
-          <YAxis width={58} tick={{ fill: "#71717a", fontSize: 10 }} tickFormatter={fmtTick} stroke="#3f3f46" />
+          <YAxis width={yAxisWidth(results)} tick={{ fill: '#71717a', fontSize: 10 }} tickFormatter={fmtTick} stroke='#3f3f46' />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(l: unknown) => fmtTime(Number(l))} formatter={makeTooltipFormatter(suffix, decimals)} />
           {keys.map((k, i) => (
             <Line key={k} type="monotone" dataKey={k} stroke={colorFor(k, i)} strokeWidth={1.5} dot={false} isAnimationActive={false} />
