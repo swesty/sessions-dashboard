@@ -101,7 +101,7 @@ function yAxisWidth(results: RangeResult[]): number {
     }
   }
   const label = fmtTick(maxVal);
-  return Math.max(32, label.length * 7 + 12);
+  return Math.max(40, label.length * 9 + 10);
 }
 
 function toChartData(results: RangeResult[], labelKey = 'model'): ChartPoint[] {
