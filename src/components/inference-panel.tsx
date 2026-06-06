@@ -287,12 +287,21 @@ export function InferencePanel() {
     queryFn: () => instant('sum(rate(vllm:prefix_cache_hits_total[5m])) / clamp_min(sum(rate(vllm:prefix_cache_queries_total[5m])),1) * 100'),
     ...iOpts,
   });
-  const vSuccess = useQuery({ queryKey: ['v-success'], queryFn: () => instant('sum(rate(vllm:request_success_total[5m]))'), ...iOpts });
+  const vSuccess     = useQuery({ queryKey: ['v-success'],    queryFn: () => instant('sum(rate(vllm:request_success_total[5m]))'), ...iOpts });
+  const vKvMax       = useQuery({ queryKey: ['v-kv-max'],     queryFn: () => instant('max_over_time(vllm:kv_cache_usage_perc[24h]) * 100'), ...iOpts });
+  const vKvP95       = useQuery({ queryKey: ['v-kv-p95'],     queryFn: () => instant('quantile_over_time(0.95, vllm:kv_cache_usage_perc[24h]) * 100'), ...iOpts });
+  const vSpecAcc     = useQuery({ queryKey: ['v-spec-acc'],   queryFn: () => instant('sum by (model) (vllm:spec_decode_num_accepted_tokens_total) / clamp_min(sum by (model) (vllm:spec_decode_num_draft_tokens_total), 1) * 100'), ...iOpts });
+  const vSpecDrafts  = useQuery({ queryKey: ['v-spec-d'],     queryFn: () => instant('sum by (model) (vllm:spec_decode_num_drafts_total)'), ...iOpts });
+  const vSpecDraftTok= useQuery({ queryKey: ['v-spec-dtok'],  queryFn: () => instant('sum by (model) (vllm:spec_decode_num_draft_tokens_total)'), ...iOpts });
+  const vSpecPerPos  = useQuery({ queryKey: ['v-spec-pos'],   queryFn: () => instant('sum by (model, position) (vllm:spec_decode_num_accepted_tokens_per_pos_total)'), ...iOpts });
 
   const vGenR = useQuery({ queryKey: ['v-gen-r', win, step], queryFn: () => range('sum by (model) (rate(vllm:generation_tokens_total[2m]))', win, step), ...rOpts });
   const vPromptR = useQuery({ queryKey: ['v-prompt-r', win, step], queryFn: () => range('sum by (model) (rate(vllm:prompt_tokens_total[2m]))', win, step), ...rOpts });
   const vWaitR = useQuery({ queryKey: ['v-wait-r', win, step], queryFn: () => range('sum by (model) (vllm:num_requests_waiting)', win, step), ...rOpts });
-  const vKvR = useQuery({ queryKey: ['v-kv-r', win, step], queryFn: () => range('vllm:kv_cache_usage_perc', win, step), ...rOpts });
+  const vKvR      = useQuery({ queryKey: ['v-kv-r',      win, step], queryFn: () => range('vllm:kv_cache_usage_perc', win, step), ...rOpts });
+  const vSpecAccR = useQuery({ queryKey: ['v-spec-acc-r', win, step], queryFn: () => range('sum by (model) (rate(vllm:spec_decode_num_accepted_tokens_total[2m])) / clamp_min(sum by (model) (rate(vllm:spec_decode_num_draft_tokens_total[2m])), 0.0001) * 100', win, step), ...rOpts });
+  const vSpecDrR  = useQuery({ queryKey: ['v-spec-dr-r',  win, step], queryFn: () => range('sum by (model) (rate(vllm:spec_decode_num_draft_tokens_total[2m]))', win, step), ...rOpts });
+  const vSpecAkR  = useQuery({ queryKey: ['v-spec-ak-r',  win, step], queryFn: () => range('sum by (model) (rate(vllm:spec_decode_num_accepted_tokens_total[2m]))', win, step), ...rOpts });
   const vTtftR = useQuery({
     queryKey: ['v-ttft-r', win, step],
     queryFn: () => range('histogram_quantile(0.95, sum by (le,model) (rate(vllm:time_to_first_token_seconds_bucket[5m])))', win, step),
@@ -443,6 +452,29 @@ export function InferencePanel() {
         </ChartCard>
       </div>
 
+      {(vKvMax.data?.length ?? 0) > 0 && (
+        <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+          <div className="text-xs font-medium text-zinc-400 mb-2">KV Cache Sizing — 24h window (guides gpu_memory_utilization tuning)</div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {(vKvMax.data ?? []).filter(r => r.metric.model).map(r => {
+              const model = r.metric.model;
+              const maxPct = parseFloat(r.value[1]);
+              const p95 = pickI(vKvP95.data ?? [], { model });
+              const reco = maxPct < 5 ? 'can reduce significantly' : maxPct < 20 ? 'some reduction safe' : maxPct < 60 ? 'near-optimal' : 'at capacity';
+              const rc = maxPct < 5 ? 'text-emerald-400' : maxPct < 20 ? 'text-cyan-400' : maxPct < 60 ? 'text-zinc-400' : 'text-red-400';
+              return (
+                <div key={model} className="rounded border border-zinc-800 bg-zinc-950/40 p-2">
+                  <div className="text-[10px] text-zinc-500 truncate mb-1">{model}</div>
+                  <div className="font-mono tabular-nums text-sm font-semibold text-zinc-100">{maxPct.toFixed(1)}<span className="text-[10px] text-zinc-500 ml-0.5">% max</span></div>
+                  <div className="font-mono tabular-nums text-xs text-zinc-500">{p95 !== null ? p95.toFixed(2) : '0.00'}<span className="text-[10px] ml-0.5">% p95</span></div>
+                  <div className={"text-[10px] mt-0.5 " + rc}>{reco}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
         <ChartCard title="P95 TTFT (s)">
           <MultiLineChart results={vTtftR.data ?? []} suffix=" s" decimals={2} />
@@ -460,6 +492,92 @@ export function InferencePanel() {
           <MultiLineChart results={vQueueR.data ?? []} suffix=" s" decimals={2} />
         </ChartCard>
       </div>
+
+      <SectionHeader title="Speculative Decoding" />
+
+      {(() => {
+        const accData = vSpecAcc.data ?? [];
+        const models  = [...new Set((vSpecDrafts.data ?? []).map(r => r.metric.model))].filter(Boolean);
+        if (!models.length) return <p className="text-xs text-zinc-500 mb-3">No speculative decoding data yet.</p>;
+
+        return (
+          <>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 mb-3">
+              {models.flatMap(m => {
+                const acc    = pickI(accData, { model: m });
+                const drafts = pickI(vSpecDrafts.data ?? [], { model: m });
+                const dtok   = pickI(vSpecDraftTok.data ?? [], { model: m });
+                const numSpec = (drafts && dtok && drafts > 0) ? Math.round(dtok / drafts) : null;
+                const signal  = acc === null ? '—' : acc >= 75 ? '▲ try +1 token' : acc >= 50 ? '✓ optimal' : '▼ try −1 token';
+                const sc      = acc === null ? 'text-zinc-500' : acc >= 75 ? 'text-emerald-400' : acc >= 50 ? 'text-cyan-400' : 'text-amber-400';
+                return [
+                  <div key={m+'-a'} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+                    <div className="text-[10px] text-zinc-500 truncate mb-1">{m} · acceptance</div>
+                    <div className="text-xl font-semibold font-mono tabular-nums text-zinc-100">{acc !== null ? acc.toFixed(1) : '—'}<span className="text-xs text-zinc-500 ml-0.5">%</span></div>
+                  </div>,
+                  <div key={m+'-s'} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+                    <div className="text-[10px] text-zinc-500 truncate mb-1">{m} · spec tokens</div>
+                    <div className="text-xl font-semibold font-mono tabular-nums text-zinc-100">{numSpec ?? '—'}</div>
+                    <div className={"text-[10px] mt-0.5 " + sc}>{signal}</div>
+                  </div>,
+                ];
+              })}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 mb-3">
+              <ChartCard title="Acceptance Rate % over time">
+                <MultiLineChart results={vSpecAccR.data ?? []} suffix="%" decimals={1} />
+              </ChartCard>
+              <ChartCard title="Draft vs Accepted tokens/s">
+                <MultiAreaChart results={vSpecDrR.data ?? []} suffix=" tok/s" decimals={2} />
+              </ChartCard>
+            </div>
+
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3 mb-3">
+              <div className="text-xs font-medium text-zinc-400 mb-2">Per-Position Acceptance — adjust num_speculative_tokens until last position drops below ~50%</div>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500">
+                    <th className="text-left pb-1.5 font-medium">Model</th>
+                    <th className="text-right pb-1.5 font-medium"># tokens</th>
+                    <th className="text-right pb-1.5 font-medium">Pos 0</th>
+                    <th className="text-right pb-1.5 font-medium">Pos 1</th>
+                    <th className="text-right pb-1.5 font-medium">Pos 2</th>
+                    <th className="text-right pb-1.5 font-medium">Pos 3</th>
+                    <th className="text-right pb-1.5 font-medium">Verdict</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {models.map(model => {
+                    const drafts  = pickI(vSpecDrafts.data ?? [], { model }) ?? 0;
+                    const dtok    = pickI(vSpecDraftTok.data ?? [], { model }) ?? 0;
+                    const numSpec = drafts > 0 ? Math.round(dtok / drafts) : null;
+                    const overall = pickI(accData, { model });
+                    const verdict = overall === null ? '—' : overall >= 75 ? '▲ try +1' : overall >= 50 ? '✓ optimal' : '▼ try −1';
+                    const vc = overall === null ? 'text-zinc-500' : overall >= 75 ? 'text-emerald-400' : overall >= 50 ? 'text-cyan-400' : 'text-amber-400';
+                    const posCell = (pos: string) => {
+                      const r = (vSpecPerPos.data ?? []).find(x => x.metric.model === model && x.metric.position === pos);
+                      if (!r || !drafts) return <td key={pos} className="text-right py-2 text-zinc-600">—</td>;
+                      const v = parseFloat(r.value[1]) / drafts * 100;
+                      const c = v >= 75 ? 'text-emerald-400' : v >= 50 ? 'text-cyan-400' : 'text-amber-400';
+                      return <td key={pos} className={"text-right py-2 font-mono tabular-nums " + c}>{v.toFixed(0)}%</td>;
+                    };
+                    return (
+                      <tr key={model} className="border-b border-zinc-800/50 last:border-0">
+                        <td className="py-2 text-zinc-300 font-mono">{model}</td>
+                        <td className="text-right py-2 text-zinc-400 font-mono">{numSpec ?? '—'}</td>
+                        {posCell('0')}{posCell('1')}{posCell('2')}{posCell('3')}
+                        <td className={"text-right py-2 font-medium " + vc}>{verdict}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <div className="mt-2 text-[10px] text-zinc-600">Pos acceptance = tokens accepted at that position / total draft iterations. Last occupied position should be ≥50% for efficient speculation.</div>
+            </div>
+          </>
+        );
+      })()}
 
       <SectionHeader title="LiteLLM — Gateway" />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
