@@ -45,6 +45,11 @@ const GPU_HOSTS: GpuHostDef[] = [
   { key: 'gesserit',label: 'gesserit',model: 'RTX 3090',      unified: false, utilLabel: { host: 'gesserit'}, tempLabel: { host: 'gesserit'}, powerLabel: { host: 'gesserit'}, vramLabel: { host: 'gesserit' }, maxPower: 350 },
 ];
 
+const MAC_HOSTS = [
+  { key: 'm4',        label: 'm4',        chip: 'Apple M4' },
+  { key: 'MacStudio', label: 'MacStudio', chip: 'Apple M4 Max' },
+];
+
 const SYS_HOSTS = ['spark-2', 'spark-1', 'jarvis', 'gesserit', 'MacStudio', 'm4'];
 
 async function fetchGPU() {
@@ -58,11 +63,12 @@ async function fetchGPU() {
 }
 
 async function fetchSys() {
-  const [mem, cpu] = await Promise.all([
+  const [mem, cpu, memTotal] = await Promise.all([
     instant('(node_memory_MemAvailable_bytes or (node_memory_free_bytes + node_memory_inactive_bytes)) / 1024 / 1024 / 1024'),
     instant('(1 - avg by (host) (rate(node_cpu_seconds_total{mode="idle"}[1m]))) * 100'),
+    instant('(node_memory_MemTotal_bytes or node_memory_total_bytes) / 1024 / 1024 / 1024'),
   ]);
-  return { mem, cpu };
+  return { mem, cpu, memTotal };
 }
 
 async function fetchLLM() {
@@ -74,6 +80,7 @@ async function fetchLLM() {
 }
 
 type GpuData = Awaited<ReturnType<typeof fetchGPU>>;
+type SysData = Awaited<ReturnType<typeof fetchSys>>;
 
 function VramBar({ used, free }: { used: number | null; free: number | null }) {
   if (used === null || free === null) return null;
@@ -91,12 +98,30 @@ function VramBar({ used, free }: { used: number | null; free: number | null }) {
         </span>
       </div>
       <div className='h-1.5 rounded-full overflow-hidden' style={{ background: 'var(--data-track)' }}>
-        <div
-          className={`h-full rounded-full ${barColor} transition-all duration-700`}
-          style={{ width: `${pct}%` }}
-        />
+        <div className={`h-full rounded-full ${barColor} transition-all duration-700`} style={{ width: `${pct}%` }} />
       </div>
       <div className='text-right text-[10px] text-zinc-600'>Max: {totalGb.toFixed(0)} GiB</div>
+    </div>
+  );
+}
+
+function MemBar({ avail, total }: { avail: number | null; total: number | null }) {
+  if (avail === null || total === null) return null;
+  const used = total - avail;
+  const pct = Math.round((used / total) * 100);
+  const barColor = pct >= 90 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : 'bg-cyan-500';
+  return (
+    <div className='w-full space-y-1.5'>
+      <div className='flex items-baseline justify-between gap-2'>
+        <span className='text-sm font-medium text-zinc-400'>Memory</span>
+        <span className='font-mono tabular-nums'>
+          <span className='text-base font-semibold text-zinc-100'>{used.toFixed(1)}/{total.toFixed(0)}</span>
+          <span className='text-xs text-zinc-500 ml-1'>GiB</span>
+        </span>
+      </div>
+      <div className='h-1.5 rounded-full overflow-hidden' style={{ background: 'var(--data-track)' }}>
+        <div className={`h-full rounded-full ${barColor} transition-all duration-700`} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
@@ -153,6 +178,36 @@ function GpuHostCard({ host, gpu }: { host: GpuHostDef; gpu: GpuData }) {
   );
 }
 
+function MacHostCard({ host, sys }: { host: typeof MAC_HOSTS[0]; sys: SysData }) {
+  const cpu      = pick(sys.cpu,      { host: host.key });
+  const memAvail = pick(sys.mem,      { host: host.key });
+  const memTotal = pick(sys.memTotal, { host: host.key });
+  const online   = cpu !== null;
+
+  return (
+    <div className='bg-zinc-900 border border-zinc-800 rounded-xl p-4'>
+      <div className='flex items-center justify-between mb-4'>
+        <div>
+          <div className='text-[10px] text-zinc-500 uppercase tracking-widest mb-0.5'>HOST</div>
+          <div className='text-sm font-semibold text-zinc-100'>{host.label}</div>
+        </div>
+        <div className='text-right'>
+          <div className='text-[10px] text-zinc-500 uppercase tracking-widest mb-0.5'>CHIP</div>
+          <div className='text-sm text-zinc-300'>{host.chip}</div>
+        </div>
+        <StatusPill status={online ? 'online' : 'offline'} />
+      </div>
+      <div className='flex items-start gap-4'>
+        <CircularGauge value={cpu} max={100} label='CPU' unit='%' warn={70} crit={90} size={88} />
+        <div className='flex-1 min-w-0 space-y-2 pt-1'>
+          <MemBar avail={memAvail} total={memTotal} />
+          <StatRow label='CPU load' value={cpu !== null ? cpu.toFixed(1) : null} unit='%' />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MetricsPanel() {
   const { data: gpu, isLoading: gpuLoading, dataUpdatedAt: gpuAt } = useQuery({ queryKey: ['gpu'], queryFn: fetchGPU, refetchInterval: 30_000 });
   const { data: sys } = useQuery({ queryKey: ['sys'], queryFn: fetchSys, refetchInterval: 30_000 });
@@ -183,6 +238,15 @@ export function MetricsPanel() {
           {GPU_HOSTS.map((h) => <GpuHostCard key={h.key} host={h} gpu={gpu!} />)}
         </div>
       )}
+
+      <SectionHeading>macOS Hosts</SectionHeading>
+      <div className='grid grid-cols-1 xl:grid-cols-2 gap-3'>
+        {MAC_HOSTS.map((h) => (
+          sys
+            ? <MacHostCard key={h.key} host={h} sys={sys} />
+            : <div key={h.key} className='bg-zinc-900 border border-zinc-800 rounded-xl p-4 h-36 animate-pulse' />
+        ))}
+      </div>
 
       <SectionHeading>System Memory</SectionHeading>
       <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2'>

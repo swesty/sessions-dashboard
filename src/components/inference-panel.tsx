@@ -79,6 +79,19 @@ function fmtTime(ts: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+function fmtTick(v: unknown): string {
+  const n = typeof v === 'number' ? v : parseFloat(String(v));
+  if (isNaN(n)) return '';
+  const a = Math.abs(n);
+  if (a === 0) return '0';
+  if (a >= 10000) return (n / 1000).toFixed(0) + 'k';
+  if (a >= 1000)  return (n / 1000).toFixed(1) + 'k';
+  if (a >= 100)   return n.toFixed(0);
+  if (a >= 10)    return n.toFixed(1);
+  if (a >= 1)     return n.toFixed(2);
+  return n.toFixed(3);
+}
+
 function toChartData(results: RangeResult[], labelKey = 'model'): ChartPoint[] {
   const byTime = new Map<number, ChartPoint>();
   const keys: string[] = [];
@@ -171,10 +184,10 @@ function MultiAreaChart({
   return (
     <>
       <ResponsiveContainer width="100%" height={160}>
-        <AreaChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: 0 }}>
+        <AreaChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: 4 }}>
           <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
           <XAxis dataKey="t" tickFormatter={fmtTime} tick={{ fill: '#71717a', fontSize: 10 }} stroke="#3f3f46" minTickGap={32} />
-          <YAxis width={40} tick={{ fill: '#71717a', fontSize: 10 }} stroke="#3f3f46" />
+          <YAxis width={58} tick={{ fill: "#71717a", fontSize: 10 }} tickFormatter={fmtTick} stroke="#3f3f46" />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(l: unknown) => fmtTime(Number(l))} formatter={makeTooltipFormatter(suffix, decimals)} />
           {keys.map((k, i) => (
             <Area
@@ -212,10 +225,10 @@ function MultiLineChart({
   return (
     <>
       <ResponsiveContainer width="100%" height={160}>
-        <LineChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: 0 }}>
+        <LineChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: 4 }}>
           <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
           <XAxis dataKey="t" tickFormatter={fmtTime} tick={{ fill: '#71717a', fontSize: 10 }} stroke="#3f3f46" minTickGap={32} />
-          <YAxis width={40} tick={{ fill: '#71717a', fontSize: 10 }} stroke="#3f3f46" />
+          <YAxis width={58} tick={{ fill: "#71717a", fontSize: 10 }} tickFormatter={fmtTick} stroke="#3f3f46" />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(l: unknown) => fmtTime(Number(l))} formatter={makeTooltipFormatter(suffix, decimals)} />
           {keys.map((k, i) => (
             <Line key={k} type="monotone" dataKey={k} stroke={colorFor(k, i)} strokeWidth={1.5} dot={false} isAnimationActive={false} />
