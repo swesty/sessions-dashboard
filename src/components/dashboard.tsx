@@ -7,11 +7,13 @@ import { TodayPanel } from './today-panel';
 import { QuickCapture } from './quick-capture';
 import { MetricsPanel } from './metrics-panel';
 import { TabSwitcher } from './ui/tab-switcher';
+import { InferencePanel } from './inference-panel';
 
 const TABS = [
   { id: 'sessions', label: 'Sessions' },
   { id: 'today',    label: 'Daily Log' },
-  { id: 'metrics',  label: 'Metrics' },
+  { id: 'metrics',   label: 'Metrics' },
+  { id: 'inference', label: 'Inference' },
 ];
 
 export function Dashboard() {
@@ -38,7 +40,8 @@ export function Dashboard() {
           </div>
         )}
         {tab === 'today'   && <div className='max-w-3xl'><TodayPanel /></div>}
-        {tab === 'metrics' && <div className='w-full'><MetricsPanel /></div>}
+        {tab === 'metrics'   && <div className='w-full'><MetricsPanel /></div>}
+        {tab === 'inference' && <div className='w-full'><InferencePanel /></div>}
       </div>
 
       <QuickCapture />
