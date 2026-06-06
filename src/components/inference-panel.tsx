@@ -199,7 +199,7 @@ function MultiAreaChart({
         <AreaChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: 4 }}>
           <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
           <XAxis dataKey="t" tickFormatter={fmtTime} tick={{ fill: '#71717a', fontSize: 10 }} stroke="#3f3f46" minTickGap={32} />
-          <YAxis width={yAxisWidth(results)} tick={{ fill: '#71717a', fontSize: 10 }} tickFormatter={fmtTick} stroke='#3f3f46' />
+          <YAxis width={yAxisWidth(results)} domain={[0, (dataMax: number) => dataMax === 0 ? 1 : +(dataMax * 1.1).toPrecision(4)]} tick={{ fill: '#71717a', fontSize: 10 }} tickFormatter={fmtTick} stroke='#3f3f46' />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(l: unknown) => fmtTime(Number(l))} formatter={makeTooltipFormatter(suffix, decimals)} />
           {keys.map((k, i) => (
             <Area
@@ -240,7 +240,7 @@ function MultiLineChart({
         <LineChart data={data} margin={{ top: 4, right: 6, bottom: 0, left: 4 }}>
           <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
           <XAxis dataKey="t" tickFormatter={fmtTime} tick={{ fill: '#71717a', fontSize: 10 }} stroke="#3f3f46" minTickGap={32} />
-          <YAxis width={yAxisWidth(results)} tick={{ fill: '#71717a', fontSize: 10 }} tickFormatter={fmtTick} stroke='#3f3f46' />
+          <YAxis width={yAxisWidth(results)} domain={[0, (dataMax: number) => dataMax === 0 ? 1 : +(dataMax * 1.1).toPrecision(4)]} tick={{ fill: '#71717a', fontSize: 10 }} tickFormatter={fmtTick} stroke='#3f3f46' />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(l: unknown) => fmtTime(Number(l))} formatter={makeTooltipFormatter(suffix, decimals)} />
           {keys.map((k, i) => (
             <Line key={k} type="monotone" dataKey={k} stroke={colorFor(k, i)} strokeWidth={1.5} dot={false} isAnimationActive={false} />
