@@ -278,10 +278,10 @@ export function InferencePanel() {
   const iOpts = { refetchInterval: 10_000, staleTime: 5_000 };
   const rOpts = { refetchInterval: 30_000, staleTime: 25_000 };
 
-  const vRunning = useQuery({ queryKey: ['v-running'], queryFn: () => instant('sum by (model) (vllm:num_requests_running)'), ...iOpts });
-  const vWaiting = useQuery({ queryKey: ['v-waiting'], queryFn: () => instant('sum by (model) (vllm:num_requests_waiting)'), ...iOpts });
+  const vRunning = useQuery({ queryKey: ['v-running'], queryFn: () => instant('max_over_time(sum by (model) (vllm:num_requests_running)[1m:15s])'), ...iOpts });
+  const vWaiting = useQuery({ queryKey: ['v-waiting'], queryFn: () => instant('max_over_time(sum by (model) (vllm:num_requests_waiting)[1m:15s])'), ...iOpts });
   const vKv = useQuery({ queryKey: ['v-kv'], queryFn: () => instant('vllm:kv_cache_usage_perc'), ...iOpts });
-  const vGen = useQuery({ queryKey: ['v-gen'], queryFn: () => instant('sum by (model) (rate(vllm:generation_tokens_total[2m]))'), ...iOpts });
+  const vGen = useQuery({ queryKey: ['v-gen'], queryFn: () => instant('sum by (model) (rate(vllm:generation_tokens_total[5m]))'), ...iOpts });
   const vPrefix = useQuery({
     queryKey: ['v-prefix'],
     queryFn: () => instant('sum(rate(vllm:prefix_cache_hits_total[5m])) / clamp_min(sum(rate(vllm:prefix_cache_queries_total[5m])),1) * 100'),
@@ -295,7 +295,7 @@ export function InferencePanel() {
   const vSpecDraftTok= useQuery({ queryKey: ['v-spec-dtok'],  queryFn: () => instant('sum by (model) (vllm:spec_decode_num_draft_tokens_total)'), ...iOpts });
   const vSpecPerPos  = useQuery({ queryKey: ['v-spec-pos'],   queryFn: () => instant('sum by (model, position) (vllm:spec_decode_num_accepted_tokens_per_pos_total)'), ...iOpts });
 
-  const vGenR = useQuery({ queryKey: ['v-gen-r', win, step], queryFn: () => range('sum by (model) (rate(vllm:generation_tokens_total[2m]))', win, step), ...rOpts });
+  const vGenR = useQuery({ queryKey: ['v-gen-r', win, step], queryFn: () => range('sum by (model) (rate(vllm:generation_tokens_total[5m]))', win, step), ...rOpts });
   const vPromptR = useQuery({ queryKey: ['v-prompt-r', win, step], queryFn: () => range('sum by (model) (rate(vllm:prompt_tokens_total[2m]))', win, step), ...rOpts });
   const vWaitR = useQuery({ queryKey: ['v-wait-r', win, step], queryFn: () => range('sum by (model) (vllm:num_requests_waiting)', win, step), ...rOpts });
   const vKvR      = useQuery({ queryKey: ['v-kv-r',      win, step], queryFn: () => range('vllm:kv_cache_usage_perc', win, step), ...rOpts });
@@ -393,8 +393,8 @@ export function InferencePanel() {
             <tr>
               <th className="px-3 py-2 text-left">model</th>
               <th className="px-3 py-2 text-left">host</th>
-              <th className="px-3 py-2 text-right">running</th>
-              <th className="px-3 py-2 text-right">waiting</th>
+              <th className="px-3 py-2 text-right">running (1m max)</th>
+              <th className="px-3 py-2 text-right">waiting (1m max)</th>
               <th className="px-3 py-2 text-right">kv%</th>
               <th className="px-3 py-2 text-right">gen tok/s</th>
               <th className="px-3 py-2 text-right">litellm req</th>
@@ -620,7 +620,7 @@ export function InferencePanel() {
           <thead className="bg-zinc-900/60 text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="px-3 py-2 text-left">model</th>
-              <th className="px-3 py-2 text-left">state</th>
+              <th className="px-3 py-2 text-left">status</th>
               <th className="px-3 py-2 text-right">total requests</th>
               <th className="px-3 py-2 text-right">status</th>
             </tr>
@@ -634,7 +634,7 @@ export function InferencePanel() {
                     {row.model}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-zinc-400 tabular-nums">{row.state === null ? '—' : fmt(row.state)}</td>
+                <td className="px-3 py-2"><span className={statusColor(row.status)}>{row.status}</span></td>
                 <td className="px-3 py-2 text-right tabular-nums">{fmt(row.total)}</td>
                 <td className={`px-3 py-2 text-right font-medium ${statusColor(row.status)}`}>{row.status}</td>
               </tr>
