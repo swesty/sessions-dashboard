@@ -82,10 +82,13 @@ function VramBar({ used, free }: { used: number | null; free: number | null }) {
   const pct = Math.round((usedGb / totalGb) * 100);
   const barColor = pct >= 95 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-cyan-500';
   return (
-    <div className='w-full'>
-      <div className='flex justify-between text-[10px] text-zinc-400 mb-1'>
-        <span>VRAM</span>
-        <span className='font-mono tabular-nums'>{usedGb.toFixed(1)}/{totalGb.toFixed(0)} GiB</span>
+    <div className='w-full space-y-1.5'>
+      <div className='flex items-baseline justify-between gap-2'>
+        <span className='text-sm font-medium text-zinc-400'>VRAM</span>
+        <span className='font-mono tabular-nums'>
+          <span className='text-base font-semibold text-zinc-100'>{usedGb.toFixed(1)}/{totalGb.toFixed(0)}</span>
+          <span className='text-xs text-zinc-500 ml-1'>GiB</span>
+        </span>
       </div>
       <div className='h-1.5 rounded-full overflow-hidden' style={{ background: 'var(--data-track)' }}>
         <div
@@ -93,16 +96,19 @@ function VramBar({ used, free }: { used: number | null; free: number | null }) {
           style={{ width: `${pct}%` }}
         />
       </div>
+      <div className='text-right text-[10px] text-zinc-600'>Max: {totalGb.toFixed(0)} GiB</div>
     </div>
   );
 }
 
 function StatRow({ label, value, unit }: { label: string; value: string | null; unit?: string }) {
   return (
-    <div className='flex justify-between items-baseline text-xs'>
-      <span className='text-zinc-500'>{label}</span>
-      <span className='font-mono tabular-nums text-zinc-200'>
-        {value !== null ? <>{value}{unit && <span className='text-zinc-500 ml-0.5'>{unit}</span>}</> : <span className='text-zinc-600'>—</span>}
+    <div className='flex items-baseline justify-between gap-2'>
+      <span className='text-sm font-medium text-zinc-500'>{label}</span>
+      <span className='font-mono tabular-nums'>
+        {value !== null
+          ? <><span className='text-base font-semibold text-zinc-100'>{value}</span>{unit && <span className='text-xs text-zinc-500 ml-0.5'>{unit}</span>}</>
+          : <span className='text-zinc-600'>—</span>}
       </span>
     </div>
   );

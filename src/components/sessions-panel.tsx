@@ -105,7 +105,12 @@ export function SessionsPanel() {
         <span className="text-zinc-500 text-sm">
           {hasFilters ? `${filtered.length} of ${sessions.length}` : `${sessions.length} total`}
         </span>
-        {activeCt > 0 && <StatusDot status="active" label={`${activeCt} active`} />}
+        {activeCt > 0 && (
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_2px_rgba(74,222,128,0.4)]" />
+            <span className="text-xs text-green-400">{activeCt} active</span>
+          </span>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">

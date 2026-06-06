@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { HostChip } from './ui/host-chip';
 
 interface Host {
   host: string;
@@ -60,19 +61,22 @@ export function HostsPanel() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-semibold">Network</h2>
-          <button onClick={triggerUpdate} disabled={updating}
-            className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 rounded transition-colors">
-            {updating ? 'Updating...' : 'Update Now'}
+          <button
+            onClick={triggerUpdate}
+            disabled={updating}
+            className="px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 rounded transition-colors"
+          >
+            {updating ? 'Updating…' : 'Update Now'}
           </button>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {hosts.map(h => (
-            <div key={h.host} className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-sm">{h.host}</span>
-                <span className="text-xs text-zinc-500">{timeAgo(h.last_activity)}</span>
+            <div key={h.host} className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <HostChip host={h.host} size="sm" />
+                <span className="text-xs text-zinc-500 tabular-nums">{timeAgo(h.last_activity)}</span>
               </div>
-              <div className="text-xs text-zinc-500 mt-1">
+              <div className="text-[11px] text-zinc-500 mt-1 font-mono tabular-nums">
                 {h.session_count} sessions · {Number(h.total_lines).toLocaleString()} lines
               </div>
             </div>
@@ -80,19 +84,27 @@ export function HostsPanel() {
         </div>
       </div>
 
-      <div>
-        <h3 className="text-sm font-semibold text-zinc-400 mb-2">Workflows</h3>
-        <div className="space-y-1">
-          {workflows.map(w => (
-            <div key={w.workflow_name} className="flex items-center justify-between text-xs py-1">
-              <span className="text-zinc-300">{w.workflow_name}</span>
-              <span className={w.status === 'ok' ? 'text-green-400' : w.status === 'running' ? 'text-amber-400' : 'text-red-400'}>
-                {w.status} · {timeAgo(w.run_started)}
-              </span>
-            </div>
-          ))}
+      {workflows.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Workflows</h3>
+          <div className="space-y-0.5">
+            {workflows.map(w => {
+              const statusColor =
+                w.status === 'ok' ? 'text-green-400' :
+                w.status === 'running' ? 'text-amber-400' :
+                'text-red-400';
+              return (
+                <div key={w.workflow_name} className="flex items-center justify-between text-xs py-1">
+                  <span className="text-zinc-300 font-mono">{w.workflow_name}</span>
+                  <span className={statusColor}>
+                    {w.status} · {timeAgo(w.run_started)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
